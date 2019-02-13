@@ -1,6 +1,6 @@
 {
   "name": "ethereum-event-processor",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Ethereum Event Processor",
   "main": "index.js",
   "scripts": {
