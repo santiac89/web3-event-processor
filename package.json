@@ -1,0 +1,23 @@
+{
+  "name": "ethereum-event-processor",
+  "version": "1.0.0",
+  "description": "Ethereum Event Processor",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "node index.js",
+  },
+  "author": "Santiago Carullo",
+  "license": "ISC",
+  "dependencies": {
+    "debug": "^3.1.0",
+    "ethjs": "^0.4.0",
+    "ethjs-contract": "^0.2.3",
+    "ethjs-filter": "^0.1.8",
+    "web3": "1.0.0-beta.33"
+  },
+  "devDependencies": {
+    "bignumber.js": "^7.2.1",
+    "abi-decoder": "^1.2.0"
+  }
+}
