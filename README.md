@@ -1,6 +1,12 @@
   
 # ethereum-event-processor
 
+## Description
+
+This module is intended to listen for events that takes place in Ethereum blockchain and act accordingly.
+
+Basically, it polls events from the provided contracts every X milliseconds and executes the corresponding callback for that event passing the event information to it.
+
 ## Usage
 
   ```
@@ -28,8 +34,37 @@
   
   An array of JS objects that contains the web3js contract and the events callbacks that are going to be processed on that contract.
 
+  ##### Example
+
+  ```
+  [
+    {
+      contract: web3Contract,
+      events: {
+        EventName: async (event) => {
+          console.log(event);
+          // Do some stuff...
+        },
+        AnotherEventNameFromSameContract: async (event) => {
+          console.log(event);
+          // Do some stuff...
+        }
+      }
+    },
+    {
+      contract: anotherWeb3Contract,
+      events: {
+        AnotherEventName: async (event) => {
+          console.log(event);
+          // Do some stuff...
+        }
+      }
+    }
+  ]
+  ```
+
   #### `options`
   
-  `pollingInterval` The interval in ms to wait between each events poll.
+  `pollingInterval` `Integer` The interval in ms to wait between each events poll.
 
-  `startBlock` The block number where to start consuming events from.
+  `startBlock` `Integer` The block number where to start consuming events from.
