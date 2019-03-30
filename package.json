@@ -1,6 +1,6 @@
 {
   "name": "ethereum-event-processor",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Ethereum Event Processor",
   "main": "index.js",
   "scripts": {
@@ -18,5 +18,13 @@
   "devDependencies": {
     "bignumber.js": "^7.2.1",
     "abi-decoder": "^1.2.0"
-  }
+  },
+  "keywords": [
+    "ethereum",
+    "solidity",
+    "blockchain",
+    "event",
+    "listener",
+    "web3js"
+  ]
 }
