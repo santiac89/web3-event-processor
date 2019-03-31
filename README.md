@@ -27,27 +27,27 @@ Basically, it polls events from the provided contracts every X milliseconds and 
   eventProcessor.start();
   ```
 
-  ## **EthereumEventProcessor**
+## **EthereumEventProcessor**
 
-  ### `constructor(web3, contracts, options)`
-  
-  Arguments:
+### `constructor(web3, contracts, options)`
 
-  ### ***web3*** 
-  
-  A Web3 connection object to the blokchain.
-  
-  ### ***contracts*** 
-  
-  An array of web3js contracts that are going to be listened to.
+Arguments:
 
-  ### ***options***
-  
-  A JavaScript object that configurates the event processor behaviour. There are only two options configurable so far:
+### ***web3*** 
 
-  ***startBlock***  Block number to start listening from.
+A Web3 connection object to the blokchain.
 
-  ***pollingInterval*** Interval in milliseconds between every poll to the blockchain.
+### ***contracts*** 
+
+An array of web3js contracts that are going to be listened to.
+
+### ***options***
+
+A JavaScript object that configurates the event processor behaviour. There are only two options configurable so far:
+
+***startBlock***  Block number to start listening from.
+
+***pollingInterval*** Interval in milliseconds between every poll to the blockchain.
 
 ### `start(startBlock, pollingInterval)`
 
@@ -61,7 +61,7 @@ Stop the current event processor consuming process.
 
 Receives a function to be executed every time a new set of blocks is processed. The function receives the start and end numbers of the blocks that have been processed in that iteration.
 
-### `susbcribe(contractName, eventName, function(event))`
+### `subscribe(contractName, eventName, function(event))`
 
 Subscribes a listener function to be executed when a particular event from a particular contract has been triggered on the blockchain. The function receives the raw event as described in Web3JS documentation.
 
