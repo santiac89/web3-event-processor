@@ -10,61 +10,91 @@ Basically, it polls events from the provided contracts every X milliseconds and 
 ## Usage
 
   ```
-  const eventProcessor = require('ethereum-event-processor');
+  const EthereumEventProcessor = require('ethereum-event-processor');
   const Web3 = require('web3');
   const web3 = new Web3(new Web3.providers.HttpProvider('http://localhost:7545'));
 
   const compiledContract = new web3.eth.Contract(<contract_abi>, <contract_address>);
-
-  const contractsConfigurations = [{
-    contract: compiledContract,
-    events: {
-      EventName: async (event) => {}
-    }
-  }];
     
   const options = { pollingInterval: 500, startBlock: 200 };
     
-  eventProcessor(contractsConfigurations, options);
+  const eventProcessor = new EthereumEventProcessor(web3, [compiledContract], options);
+
+  eventProcessor.onEventsProcessed((fromBlock, lastBlock) => { console.log(fromBlock, lastBlock); });
+
+  eventProcessor.subscribe('ContractName', 'EventName', (event) => {});
+
+  eventProcessor.start();
   ```
 
-  ### Arguments
+  ## **EthereumEventProcessor**
 
-  #### `contractsConfigurations` 
+  ### `constructor(web3, contracts, options)`
   
-  An array of JS objects that contains the web3js contract and the events callbacks that are going to be processed on that contract.
+  Arguments:
 
-  ##### Example
-
-  ```
-  [
-    {
-      contract: web3Contract,
-      events: {
-        EventName: async (event) => {
-          console.log(event);
-          // Do some stuff...
-        },
-        AnotherEventNameFromSameContract: async (event) => {
-          console.log(event);
-          // Do some stuff...
-        }
-      }
-    },
-    {
-      contract: anotherWeb3Contract,
-      events: {
-        AnotherEventName: async (event) => {
-          console.log(event);
-          // Do some stuff...
-        }
-      }
-    }
-  ]
-  ```
-
-  #### `options`
+  ### ***web3*** 
   
-  `pollingInterval` `Integer` The interval in ms to wait between each events poll.
+  A Web3 connection object to the blokchain.
+  
+  ### ***contracts*** 
+  
+  An array of web3js contracts that are going to be listened to.
 
-  `startBlock` `Integer` The block number where to start consuming events from.
+  ### ***options***
+  
+  A JavaScript object that configurates the event processor behaviour. There are only two options configurable so far:
+
+  ***startBlock***  Block number to start listening from.
+
+  ***pollingInterval*** Interval in milliseconds between every poll to the blockchain.
+
+### `start(startBlock, pollingInterval)`
+
+Starts the events processor consuming process. It can receive the same arguments as the constructor options to override default behaviour.
+
+### `stop`
+
+Stop the current event processor consuming process.
+
+### `onEventsProcessed(function(fromBlock, lastBlock))`
+
+Receives a function to be executed every time a new set of blocks is processed. The function receives the start and end numbers of the blocks that have been processed in that iteration.
+
+### `susbcribe(contractName, eventName, function(event))`
+
+Subscribes a listener function to be executed when a particular event from a particular contract has been triggered on the blockchain. The function receives the raw event as described in Web3JS documentation.
+
+If the contract name provided does not correspond to a previously registered contract in the event processor an error log is printed.
+
+Arguments:
+
+**contractName** The name of the contract 
+
+**eventName** The name of the event to subscribe.
+
+### `unsubscribe(contractName, eventName)`
+
+Unsubscribes a previously registered listener. If no contract is registered for that name or no event is registered for that contract then an error log is printed.
+
+Arguments:
+
+**contractName** The name of the contract 
+
+**eventName** The name of the event to unsubscribe.
+
+### `addContract(contract)`
+
+Registers a contract to be listened to.
+
+Arguments:
+
+**contract** A compiled Web3js contract
+
+### `removeContract(contract)` 
+
+Unregisters a contract from the event processor and also removes all listeners for that contract. If the contract is not previously registred it will print an error log.
+
+Arguments:
+
+**contract** A compiled Web3js contract

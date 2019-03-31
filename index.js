@@ -13,7 +13,7 @@ const getEvents = (contract, fromBlock, toBlock) => new Promise((resolve, reject
     });
 });
 
-module.exports = function(web3, contracts = [], options = {}) {
+module.exports = function EthereumEventProcessor(web3, contracts = [], options = {}) {
   this.contracts = {};
 
   contracts.forEach((contract) => {
@@ -23,7 +23,7 @@ module.exports = function(web3, contracts = [], options = {}) {
   this.options = options;
   this.eventConfigs = {};
   this.running = false;
-  this.fromBlock = this.options.startingBlock || 0;
+  this.fromBlock = this.options.startBlock || 0;
   this.pollingInterval = this.options.pollingInterval || 10000;
   this.eventsProcessedCallback = () => {};
 
