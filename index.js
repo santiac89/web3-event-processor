@@ -13,13 +13,8 @@ const getEvents = (contract, fromBlock, toBlock) => new Promise((resolve, reject
     });
 });
 
-module.exports = function EthereumEventProcessor(web3, contracts = [], options = {}) {
+module.exports = function EthereumEventProcessor(web3, options = {}) {
   this.contracts = {};
-
-  contracts.forEach((contract) => {
-    this.contracts[contract.contractName] = contract;
-  });
-
   this.options = options;
   this.eventConfigs = {};
   this.running = false;
@@ -47,24 +42,24 @@ module.exports = function EthereumEventProcessor(web3, contracts = [], options =
     this.running = false;
   };
 
-  this.addContract = (contract) => {
-    if (this.contracts[contract.contractName]) {
-      log.error('Contract %s is already registered', contract.contractName);
+  this.addContract = (contractName, contract) => {
+    if (this.contracts[contractName]) {
+      log.error('Contract %s is already registered', contractName);
       return;
     }
 
-    this.contracts[contract.contractName] = contract;
-    this.eventConfigs[contract.contractName] = {};
+    this.contracts[contractName] = contract;
+    this.eventConfigs[contractName] = {};
   }
 
-  this.removeContract = (contract) => {
-    if (!this.contracts[contract.contractName]) {
-      log.error('Cannot remove contract since is not registered %s', contract.contractName);
+  this.removeContract = (contractName) => {
+    if (!this.contracts[contractName]) {
+      log.error('Cannot remove contract since is not registered %s', contractName);
       return;
     }
 
-    delete this.contracts[contract.contractName];
-    delete this.eventConfigs[contract.contractName];
+    delete this.contracts[contractName];
+    delete this.eventConfigs[contractName];
   };
 
   this.subscribe = (contractName, eventName, callback) => {
@@ -117,11 +112,10 @@ module.exports = function EthereumEventProcessor(web3, contracts = [], options =
   
         log.debug('Polling block %s to block %s', this.fromBlock, lastBlock);
         
-        Object.values(this.contracts).forEach(async (contract) => {
-          const events = await getEvents(contract, this.fromBlock, lastBlock);
+        Object.keys(this.contracts).forEach(async (contractName) => {
+          const events = await getEvents(this.contracts[contractName], this.fromBlock, lastBlock);
   
           events.forEach(async (eventLog) => {
-            const contractName = contract.contractName;
             const eventName = eventLog.event;
   
             log.info('%s:%s event received: %O', contractName, eventName, eventLog);

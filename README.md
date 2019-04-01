@@ -18,28 +18,27 @@ Basically, it polls events from the provided contracts every X milliseconds and 
     
   const options = { pollingInterval: 500, startBlock: 200 };
     
-  const eventProcessor = new EthereumEventProcessor(web3, [compiledContract], options);
+  const eventProcessor = new EthereumEventProcessor(web3, options);
 
-  eventProcessor.onEventsProcessed((fromBlock, lastBlock) => { console.log(fromBlock, lastBlock); });
+  eventProcessor.onEventsProcessed((fromBlock, lastBlock) => {
+    console.log(fromBlock, lastBlock); 
+  });
 
-  eventProcessor.subscribe('ContractName', 'EventName', (event) => {});
+  eventProcessor.addContract('SomeContractName', compiledContract);
+  eventProcessor.subscribe('SomeContractName', 'EventName', (event) => {});
 
   eventProcessor.start();
   ```
 
 ## **EthereumEventProcessor**
 
-### `constructor(web3, contracts, options)`
+### `constructor(web3, options)`
 
 Arguments:
 
 ### ***web3*** 
 
 A Web3 connection object to the blokchain.
-
-### ***contracts*** 
-
-An array of web3js contracts that are going to be listened to.
 
 ### ***options***
 
@@ -83,18 +82,20 @@ Arguments:
 
 **eventName** The name of the event to unsubscribe.
 
-### `addContract(contract)`
+### `addContract(contractName, contract)`
 
 Registers a contract to be listened to.
 
 Arguments:
 
+**contractName** The name of the contract 
+
 **contract** A compiled Web3js contract
 
-### `removeContract(contract)` 
+### `removeContract(contractName)` 
 
 Unregisters a contract from the event processor and also removes all listeners for that contract. If the contract is not previously registred it will print an error log.
 
 Arguments:
 
-**contract** A compiled Web3js contract
+**contractName** The name of the contract 
