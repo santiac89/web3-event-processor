@@ -20,7 +20,7 @@ Basically, it polls events from the provided contracts every X milliseconds and 
     
   const eventProcessor = new EthereumEventProcessor(web3, options);
 
-  eventProcessor.onEventsProcessed((fromBlock, lastBlock) => {
+  eventProcessor.onEvents((fromBlock, lastBlock) => {
     console.log(fromBlock, lastBlock); 
   });
 
@@ -56,7 +56,7 @@ Starts the events processor consuming process. It can receive the same arguments
 
 Stop the current event processor consuming process.
 
-### `onEventsProcessed(function(fromBlock, lastBlock))`
+### `onEvents(function(fromBlock, lastBlock))`
 
 Receives a function to be executed every time a new set of blocks is processed. The function receives the start and end numbers of the blocks that have been processed in that iteration.
 
