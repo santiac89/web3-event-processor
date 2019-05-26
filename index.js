@@ -1,99 +1,91 @@
 const log = require('./logger')('ethereum-event-processor');
 
-const getEvents = (contract, fromBlock, toBlock) => new Promise((resolve, reject) => {
-  contract.getPastEvents(
-    'allEvents',
-    { fromBlock, toBlock },
-    (err, eventLogs) => {
-        if (err) {
-          return reject(err);
-        }
 
-        resolve(eventLogs);
-    });
-});
 
 module.exports = function EthereumEventProcessor(web3, options = {}) {
-  this.contracts = {};
-  this.options = options;
-  this.eventConfigs = {};
-  this.running = false;
-  this.fromBlock = this.options.startBlock || 0;
-  this.pollingInterval = this.options.pollingInterval || 10000;
-  this.eventsProcessedCallback = () => {};
+  let contracts = {};
+  let eventConfigs = {};
+  let running = false;
+  let fromBlock = options.startBlock || 0;
+  let pollingInterval = options.pollingInterval || 10000;
+  let eventsCallback = () => {};
 
-  this.onEventsProcessed = (fn) => {
-    this.eventsProcessedCallback = fn;
+  this.onEvents = (fn) => {
+    eventsCallback = fn;
   };
 
-  this.start = (fromBlock = this.fromBlock, pollingInterval = this.pollingInterval) => {
-    this.running = true;
+  this.start = (_fromBlock = fromBlock, _pollingInterval = pollingInterval) => {
+    running = true;
 
-    this.fromBlock = fromBlock;
-    this.pollingInterval = pollingInterval;
+    fromBlock = _fromBlock;
+    pollingInterval = _pollingInterval;
 
     log.info('Starting from block %s', fromBlock);
 
-    this.consumeEvents();
+    consumeEvents();
   };
 
   this.stop = () => {
     log.info('Stopping...');
-    this.running = false;
+    running = false;
   };
 
   this.addContract = (contractName, contract) => {
-    if (this.contracts[contractName]) {
+    if (contracts[contractName]) {
       log.error('Contract %s is already registered', contractName);
-      return;
+      return false;
     }
 
-    this.contracts[contractName] = contract;
-    this.eventConfigs[contractName] = {};
+    contracts[contractName] = contract;
+    eventConfigs[contractName] = {};
+    return true;
   }
 
   this.removeContract = (contractName) => {
-    if (!this.contracts[contractName]) {
+    if (!contracts[contractName]) {
       log.error('Cannot remove contract since is not registered %s', contractName);
-      return;
+      return false;
     }
 
-    delete this.contracts[contractName];
-    delete this.eventConfigs[contractName];
+    delete contracts[contractName];
+    delete eventConfigs[contractName];
+    return true;
   };
 
   this.subscribe = (contractName, eventName, callback) => {
-    if (!this.contracts[contractName] || !this.eventConfigs[contractName]) {
+    if (!contracts[contractName] || !eventConfigs[contractName]) {
       log.error('Cannot subscribe to event %s since the specified contract is not registered %s', eventName, contractName);
-      return;
+      return false;
     }
 
-    this.eventConfigs[contractName][eventName] = callback;
+    eventConfigs[contractName][eventName] = callback;
+    return true;
   };
 
   this.unsubscribe = (contractName, eventName) => {
-    if (!this.contracts[contractName] || !this.eventConfigs[contractName]) {
+    if (!contracts[contractName] || !eventConfigs[contractName]) {
       log.error('Cannot unsubscribe from event %s since the specified contract is not registered %s', eventName, contractName);
-      return;
+      return false;
     }
 
-    if (!this.eventConfigs[contractName][eventName]) {
+    if (!eventConfigs[contractName][eventName]) {
       log.warn('Cannot unsubscribe event %s since it is not registered for the specified contract %s', eventName, contractName);
-      return;
+      return false;
     }
 
-    delete this.eventConfigs[contractName][eventName];
+    delete eventConfigs[contractName][eventName];
+    return true;
   };
 
-  this.poll = async (fn, time) => {
-    if (this.running) {
+  const poll = async (fn, time) => {
+    if (running) {
       await fn();
-      setTimeout(() => this.poll(fn, time), time);
+      setTimeout(() => poll(fn, time), time);
     }    
   };
 
-  this.consumeEvents = () => {
-    this.poll(async () => {
+  const consumeEvents = () => {
+    poll(async () => {
       try {
         let lastBlock = await web3.eth.getBlockNumber();
         let blockExists = await web3.eth.getBlock(lastBlock);
@@ -103,17 +95,17 @@ module.exports = function EthereumEventProcessor(web3, options = {}) {
           return;
         }
   
-        if (this.fromBlock === lastBlock) {
+        if (fromBlock === lastBlock) {
           log.debug('No new block since block number %s', lastBlock);
           return;
         }
   
-        this.fromBlock++;
+        fromBlock++;
   
-        log.debug('Polling block %s to block %s', this.fromBlock, lastBlock);
+        log.debug('Polling block %s to block %s', fromBlock, lastBlock);
         
-        Object.keys(this.contracts).forEach(async (contractName) => {
-          const events = await getEvents(this.contracts[contractName], this.fromBlock, lastBlock);
+        Object.keys(contracts).forEach(async (contractName) => {
+          const events = await getEvents(contracts[contractName], fromBlock, lastBlock);
   
           events.forEach(async (eventLog) => {
             const eventName = eventLog.event;
@@ -121,8 +113,8 @@ module.exports = function EthereumEventProcessor(web3, options = {}) {
             log.info('%s:%s event received: %O', contractName, eventName, eventLog);
   
             try {
-              if (this.eventConfigs[contractName] && this.eventConfigs[contractName][eventName]) {
-                await this.eventConfigs[contractName][eventName](eventLog);
+              if (eventConfigs[contractName] && eventConfigs[contractName][eventName]) {
+                await eventConfigs[contractName][eventName](eventLog);
               }
             } catch (processingError) {
               log.error(`%s:%s produced an error when processing the event:\nError:\n %O\nEvent:\n %O`, contractName, eventName, processingError, eventLog);
@@ -130,12 +122,25 @@ module.exports = function EthereumEventProcessor(web3, options = {}) {
           });
         });
         
-        this.eventsProcessedCallback(this.fromBlock, lastBlock);
-        this.fromBlock = lastBlock;
+        eventsCallback(fromBlock, lastBlock);
+        fromBlock = lastBlock;
       } catch (eventsError) {
         log.error('Error received! %O', eventsError);
         process.exit(1);
       }
-    }, this.pollingInterval);
+    }, pollingInterval);
   };
+
+  const getEvents = (contract, fromBlock, toBlock) => new Promise((resolve, reject) => {
+    contract.getPastEvents(
+      'allEvents',
+      { fromBlock, toBlock },
+      (err, eventLogs) => {
+          if (err) {
+            return reject(err);
+          }
+  
+          resolve(eventLogs);
+      });
+  });
 };

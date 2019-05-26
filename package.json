@@ -4,7 +4,7 @@
   "description": "Ethereum Event Processor",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "node_modules/.bin/mocha test.js"
   },
   "author": "Santiago Carullo",
   "license": "ISC",
@@ -16,8 +16,11 @@
     "web3": "1.0.0-beta.33"
   },
   "devDependencies": {
+    "abi-decoder": "^1.2.0",
     "bignumber.js": "^7.2.1",
-    "abi-decoder": "^1.2.0"
+    "chai": "^4.2.0",
+    "mocha": "^6.1.4",
+    "sinon": "^7.3.2"
   },
   "keywords": [
     "ethereum",
