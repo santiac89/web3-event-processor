@@ -1,87 +1,62 @@
 const log = require('./logger')('ethereum-event-processor');
 
+module.exports = function ContractEventListener(
+  web3,
+  address,
+  abi,
+  options = {}
+) {
+  if (!web3) {
+    throw new Error('No web3 instance provided.');
+  }
 
+  if (!address) {
+    throw new Error('No contract address provided.');
+  }
 
-module.exports = function EthereumEventProcessor(web3, options = {}) {
-  let contracts = {};
-  let eventConfigs = {};
+  if (!abi) {
+    throw new Error('No contract abi provided.');
+  }
+
+  let callbacks = { end: () => {} };
   let running = false;
+  let timeoutId = null;
   let fromBlock = options.startBlock || 0;
   let pollingInterval = options.pollingInterval || 10000;
-  let eventsCallback = () => {};
 
-  this.onEvents = (fn) => {
-    eventsCallback = fn;
-  };
+  const compiledContract = new web3.eth.Contract(abi, address);
 
-  this.start = (_fromBlock = fromBlock, _pollingInterval = pollingInterval) => {
+  this.listen = ({ _fromBlock = fromBlock, _pollingInterval = pollingInterval }) => {
     running = true;
 
     fromBlock = _fromBlock;
     pollingInterval = _pollingInterval;
 
     log.info('Starting from block %s', fromBlock);
-
+ 
     consumeEvents();
   };
 
   this.stop = () => {
-    log.info('Stopping...');
     running = false;
+    log.info('Stopped');
   };
 
-  this.addContract = (contractName, contract) => {
-    if (contracts[contractName]) {
-      log.error('Contract %s is already registered', contractName);
-      return false;
+  this.on = (eventName, callback) => {
+    if (eventName === 'end' || compiledContract.events[eventName]) {
+      callbacks[eventName] = callback;
+    } else {
+      throw new Error(`The "${eventName}" event does not exist in the configured contract.`);
     }
-
-    contracts[contractName] = contract;
-    eventConfigs[contractName] = {};
-    return true;
   }
-
-  this.removeContract = (contractName) => {
-    if (!contracts[contractName]) {
-      log.error('Cannot remove contract since is not registered %s', contractName);
-      return false;
-    }
-
-    delete contracts[contractName];
-    delete eventConfigs[contractName];
-    return true;
-  };
-
-  this.subscribe = (contractName, eventName, callback) => {
-    if (!contracts[contractName] || !eventConfigs[contractName]) {
-      log.error('Cannot subscribe to event %s since the specified contract is not registered %s', eventName, contractName);
-      return false;
-    }
-
-    eventConfigs[contractName][eventName] = callback;
-    return true;
-  };
-
-  this.unsubscribe = (contractName, eventName) => {
-    if (!contracts[contractName] || !eventConfigs[contractName]) {
-      log.error('Cannot unsubscribe from event %s since the specified contract is not registered %s', eventName, contractName);
-      return false;
-    }
-
-    if (!eventConfigs[contractName][eventName]) {
-      log.warn('Cannot unsubscribe event %s since it is not registered for the specified contract %s', eventName, contractName);
-      return false;
-    }
-
-    delete eventConfigs[contractName][eventName];
-    return true;
-  };
 
   const poll = async (fn, time) => {
     if (running) {
       await fn();
-      setTimeout(() => poll(fn, time), time);
-    }    
+      timeoutId = setTimeout(() => poll(fn, time), time);
+    } else {
+      clearTimeout(timeoutId);
+    }
   };
 
   const consumeEvents = () => {
@@ -91,7 +66,7 @@ module.exports = function EthereumEventProcessor(web3, options = {}) {
         let blockExists = await web3.eth.getBlock(lastBlock);
         
         if (!blockExists) {
-          log.debug('Can\'t confirm block %s yet! Skipping...', lastBlock);
+          log.debug('Can\'t confirm block %s yet. Skipping...', lastBlock);
           return;
         }
   
@@ -104,29 +79,26 @@ module.exports = function EthereumEventProcessor(web3, options = {}) {
   
         log.debug('Polling block %s to block %s', fromBlock, lastBlock);
         
-        Object.keys(contracts).forEach(async (contractName) => {
-          const events = await getEvents(contracts[contractName], fromBlock, lastBlock);
-  
-          events.forEach(async (eventLog) => {
-            const eventName = eventLog.event;
-  
-            log.info('%s:%s event received: %O', contractName, eventName, eventLog);
-  
-            try {
-              if (eventConfigs[contractName] && eventConfigs[contractName][eventName]) {
-                await eventConfigs[contractName][eventName](eventLog);
-              }
-            } catch (processingError) {
-              log.error(`%s:%s produced an error when processing the event:\nError:\n %O\nEvent:\n %O`, contractName, eventName, processingError, eventLog);
+        const events = await getEvents(compiledContract, fromBlock, lastBlock);
+        
+        events.forEach(async (eventLog) => {
+          const eventName = eventLog.event;
+
+          log.info('%s event received: %O', eventName, eventLog);
+          
+          try {
+            if (callbacks[eventName]) {
+              await callbacks[eventName](eventLog);
             }
-          });
+          } catch (processingError) {
+            log.error(`%s:%s produced an error when processing the event:\nError:\n %O\nEvent:\n %O`, contractName, eventName, processingError, eventLog);
+          }
         });
         
-        eventsCallback(fromBlock, lastBlock);
+        callbacks.end(fromBlock, lastBlock);
         fromBlock = lastBlock;
       } catch (eventsError) {
         log.error('Error received! %O', eventsError);
-        process.exit(1);
       }
     }, pollingInterval);
   };
