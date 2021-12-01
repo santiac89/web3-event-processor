@@ -60,9 +60,9 @@ A JavaScript object containing the configuration for the event processor behavio
 
 ***blocksToRead*** Number of blocks to read in each interval.
 
-### `listen({ _fromBlock, _pollingInterval })`
+### `listen(options)`
 
-Starts the events processor consuming process. It can receive the same arguments as the constructor options to override default behaviour.
+Starts or resumes the events processor consuming process. It can receive the same arguments as the constructor options to override default behaviour.
 
 ### `stop`
 

@@ -28,11 +28,13 @@ module.exports = function EthereumEventProcessor(
 
   const compiledContract = new web3.eth.Contract(abi, address);
 
-  this.listen = ({ _fromBlock = fromBlock, _pollingInterval = pollingInterval }) => {
+  this.listen = (override = { _fromBlock = fromBlock, _pollingInterval = pollingInterval, _blocksToWait = blocksToWait, _blocksToRead = blocksToRead }) => {
     running = true;
 
-    fromBlock = _fromBlock;
-    pollingInterval = _pollingInterval;
+    fromBlock = override._fromBlock;
+    pollingInterval = override._pollingInterval;
+    blocksToWait = override._blocksToWait;
+    blocksToRead = override._blocksToRead;
     toBlock = fromBlock + blocksToRead;
 
     log.info('Starting from block %s', fromBlock);

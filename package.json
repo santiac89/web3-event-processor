@@ -1,6 +1,6 @@
 {
   "name": "ethereum-event-processor",
-  "version": "5.0.0",
+  "version": "5.1.0",
   "description": "Ethereum Event Processor",
   "main": "index.js",
   "scripts": {
@@ -19,9 +19,6 @@
     "mocha": "^6.1.4"
   },
   "repository": "git://github.com/santiac89/ethereum-event-processor.git",
-  "publishConfig": {
-    "registry":"https://npm.pkg.github.com"
-  },
   "keywords": [
     "ethereum",
     "solidity",
