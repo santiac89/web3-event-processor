@@ -21,20 +21,20 @@ module.exports = function EthereumEventProcessor(
   let callbacks = { end: () => {} };
   let running = false;
   let timeoutId = null;
-  let fromBlock = options.startBlock || 1;
-  let pollingInterval = options.pollingInterval || 10000;
+  let fromBlock = options.startBlock != null ? options.startBlock : 1;
+  let pollingInterval = options.pollingInterval != null ? options.pollingInterval : 10000;
   let blocksToWait = options.blocksToWait != null ? options.blocksToWait : 20;
   let blocksToRead = options.blocksToRead != null ? options.blocksToRead : 20;
 
   const compiledContract = new web3.eth.Contract(abi, address);
 
-  this.listen = (override = { _fromBlock = fromBlock, _pollingInterval = pollingInterval, _blocksToWait = blocksToWait, _blocksToRead = blocksToRead }) => {
+  this.listen = (override = {}) => {
     running = true;
 
-    fromBlock = override._fromBlock;
-    pollingInterval = override._pollingInterval;
-    blocksToWait = override._blocksToWait;
-    blocksToRead = override._blocksToRead;
+    fromBlock = override._fromBlock != null ? override._fromBlock : fromBlock;
+    pollingInterval = override._pollingInterval != null ? override._pollingInterval : pollingInterval;
+    blocksToWait = override._blocksToWait != null ? override._blocksToWait : blocksToWait;
+    blocksToRead = override._blocksToRead != null ? override._blocksToRead : blocksToRead;
     toBlock = fromBlock + blocksToRead;
 
     log.info('Starting from block %s', fromBlock);
