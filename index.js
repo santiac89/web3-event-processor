@@ -1,6 +1,6 @@
 const log = require('./logger')('ethereum-event-processor');
 
-module.exports = function ContractEventListener(
+module.exports = function EthereumEventProcessor(
   web3,
   address,
   abi,
@@ -21,8 +21,10 @@ module.exports = function ContractEventListener(
   let callbacks = { end: () => {} };
   let running = false;
   let timeoutId = null;
-  let fromBlock = options.startBlock || 0;
+  let fromBlock = options.startBlock || 1;
   let pollingInterval = options.pollingInterval || 10000;
+  let blocksToWait = options.blocksToWait != null ? options.blocksToWait : 20;
+  let blocksToRead = options.blocksToRead != null ? options.blocksToRead : 20;
 
   const compiledContract = new web3.eth.Contract(abi, address);
 
@@ -31,6 +33,7 @@ module.exports = function ContractEventListener(
 
     fromBlock = _fromBlock;
     pollingInterval = _pollingInterval;
+    toBlock = fromBlock + blocksToRead;
 
     log.info('Starting from block %s', fromBlock);
  
@@ -59,27 +62,21 @@ module.exports = function ContractEventListener(
     }
   };
 
+
   const consumeEvents = () => {
     poll(async () => {
       try {
-        let lastBlock = await web3.eth.getBlockNumber();
-        let blockExists = await web3.eth.getBlock(lastBlock);
-        
-        if (!blockExists) {
-          log.debug('Can\'t confirm block %s yet. Skipping...', lastBlock);
+        let latestBlock = await web3.eth.getBlockNumber();
+        let blocksAhead = latestBlock - toBlock;
+
+        if (blocksAhead <= blocksToWait) {
+          log.info('Not enough confirmed blocks (needs %s, found %s), retrying in %s ...', blocksToWait, blocksAhead, pollingInterval);
           return;
         }
-  
-        if (fromBlock === lastBlock) {
-          log.debug('No new block since block number %s', lastBlock);
-          return;
-        }
-  
-        fromBlock++;
-  
-        log.debug('Polling block %s to block %s', fromBlock, lastBlock);
+
+        log.debug('Polling block %s to block %s', fromBlock, toBlock);
         
-        const events = await getEvents(compiledContract, fromBlock, lastBlock);
+        const events = await getEvents(compiledContract, fromBlock, toBlock);
         
         events.forEach(async (eventLog) => {
           const eventName = eventLog.event;
@@ -95,8 +92,9 @@ module.exports = function ContractEventListener(
           }
         });
         
-        callbacks.end(fromBlock, lastBlock);
-        fromBlock = lastBlock;
+        callbacks.end(fromBlock, toBlock);
+        fromBlock = toBlock + 1;
+        toBlock = fromBlock + blocksToRead;
       } catch (eventsError) {
         log.error('Error received! %O', eventsError);
       }
