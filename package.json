@@ -18,6 +18,10 @@
     "jest": "^27.0.6",
     "mocha": "^6.1.4"
   },
+  "repository": "git://github.com/santiac89/ethereum-event-processor.git",
+  "publishConfig": {
+    "registry":"https://npm.pkg.github.com"
+  },
   "keywords": [
     "ethereum",
     "solidity",
