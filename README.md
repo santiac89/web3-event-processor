@@ -14,25 +14,25 @@ Basically, it polls events from the provided contracts every X milliseconds and 
   const Web3 = require('web3');
   const web3 = new Web3(new Web3.providers.HttpProvider('http://localhost:7545'));
 
-  const compiledContract = new web3.eth.Contract(<contract_abi>, <contract_address>);
+  const options = { pollingInterval: 500, startBlock: 200, blocksToWait: 20, blocksToRead: 20 };
     
-  const options = { pollingInterval: 500, startBlock: 200 };
-    
-  const eventProcessor = new EthereumEventProcessor(web3, options);
+  const eventProcessor = new EthereumEventProcessor(web3, contract.address, contract.abi, options);
 
-  eventProcessor.onEvents((fromBlock, lastBlock) => {
+  eventProcessor.on('EventName', (event) => {
     console.log(fromBlock, lastBlock); 
   });
 
-  eventProcessor.addContract('SomeContractName', compiledContract);
-  eventProcessor.subscribe('SomeContractName', 'EventName', (event) => {});
+  eventProcessor.on('blocks_processed', (fromBlock, lastBlock) => {
+    console.log(fromBlock, lastBlock); 
+  });
 
-  eventProcessor.start();
+  eventProcessor.listen();
+  eventProcessor.stop();
   ```
 
 ## **EthereumEventProcessor**
 
-### `constructor(web3, options)`
+### `constructor(web3, contract_address, contract_abi options)`
 
 Arguments:
 
@@ -40,15 +40,27 @@ Arguments:
 
 A Web3 connection object to the blokchain.
 
+### ***contract_address***
+
+The address of the contract to listen for events.
+
+### ***contract_abi***
+
+The ABI in JSON format of the contract to listen for events.
+
 ### ***options***
 
-A JavaScript object that configurates the event processor behaviour. There are only two options configurable so far:
+A JavaScript object containing the configuration for the event processor behaviour.
 
 ***startBlock***  Block number to start listening from.
 
 ***pollingInterval*** Interval in milliseconds between every poll to the blockchain.
 
-### `start(startBlock, pollingInterval)`
+***blocksToWait*** Number of blocks to wait before start reading events from new blocks. This will make the interval to be skipped if `(latestBlockNumber - lastReadBlock + blocksToRead) < blocksToWait`.
+
+***blocksToRead*** Number of blocks to read in each interval.
+
+### `listen({ _fromBlock, _pollingInterval })`
 
 Starts the events processor consuming process. It can receive the same arguments as the constructor options to override default behaviour.
 
@@ -56,46 +68,10 @@ Starts the events processor consuming process. It can receive the same arguments
 
 Stop the current event processor consuming process.
 
-### `onEvents(function(fromBlock, lastBlock))`
+### `on('end', function(fromBlock, toBlock))`
 
 Receives a function to be executed every time a new set of blocks is processed. The function receives the start and end numbers of the blocks that have been processed in that iteration.
 
-### `subscribe(contractName, eventName, function(event))`
+### `on(eventName, function(event))`
 
-Subscribes a listener function to be executed when a particular event from a particular contract has been triggered on the blockchain. The function receives the raw event as described in Web3JS documentation.
-
-If the contract name provided does not correspond to a previously registered contract in the event processor an error log is printed.
-
-Arguments:
-
-**contractName** The name of the contract 
-
-**eventName** The name of the event to subscribe.
-
-### `unsubscribe(contractName, eventName)`
-
-Unsubscribes a previously registered listener. If no contract is registered for that name or no event is registered for that contract then an error log is printed.
-
-Arguments:
-
-**contractName** The name of the contract 
-
-**eventName** The name of the event to unsubscribe.
-
-### `addContract(contractName, contract)`
-
-Registers a contract to be listened to.
-
-Arguments:
-
-**contractName** The name of the contract 
-
-**contract** A compiled Web3js contract
-
-### `removeContract(contractName)` 
-
-Unregisters a contract from the event processor and also removes all listeners for that contract. If the contract is not previously registred it will print an error log.
-
-Arguments:
-
-**contractName** The name of the contract 
+Receives a function to be executed every time the event specified as a string with `eventName` has been received. The function receives the event object as an argument.
