@@ -72,11 +72,11 @@ module.exports = function EthereumEventProcessor(
         let blocksAhead = latestBlock - toBlock;
 
         if (blocksAhead <= blocksToWait) {
-          log.info('Not enough confirmed blocks (needs %s, found %s), retrying in %s ...', blocksToWait, blocksAhead, pollingInterval);
+          log.debug('Not enough confirmed blocks (needs %s, found %s), retrying in %s ...', blocksToWait, blocksAhead, pollingInterval);
           return;
         }
 
-        log.debug('Polling block %s to block %s', fromBlock, toBlock);
+        log.info('Reading events from block %s to block %s', fromBlock, toBlock);
         
         const events = await getEvents(compiledContract, fromBlock, toBlock);
         
